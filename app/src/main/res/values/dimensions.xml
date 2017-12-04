@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="listWidth">200dp</dimen>
+    <dimen name="listPadding">16dp</dimen>
+    <dimen name="listSpacer">30dp</dimen>
+</resources>
