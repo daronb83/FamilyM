@@ -3,11 +3,13 @@ package fox.glass.com.family.ui;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.os.Bundle;
+import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 
 import fox.glass.com.family.R;
 import fox.glass.com.family.model.DataSet;
 import fox.glass.com.family.model.Server;
+import fox.glass.com.shared.database.Person;
 
 public class MainActivity extends FragmentActivity {
 
@@ -27,33 +29,33 @@ public class MainActivity extends FragmentActivity {
         Log.i(ID, "Loading login fragment");
 
         FragmentManager fragmentManager = this.getSupportFragmentManager();
-        LoginFragment loginFragment = (LoginFragment) fragmentManager.findFragmentById(R.id.fragframe);
+        LoginFragment loginFragment = (LoginFragment) fragmentManager.findFragmentById(R.id.fragment_container);
 
         if (loginFragment == null) {
             loginFragment = new LoginFragment();
 
             fragmentManager.beginTransaction()
-                    .add(R.id.fragframe, loginFragment)
+                    .add(R.id.fragment_container, loginFragment)
                     .commit();
         }
 
         Log.i(ID, "Login Fragment loaded");
     }
 
-    private void loadMapFragment() {
+    public void loadMapFragment(Person person) {
         Log.i(ID, "Loading Map Fragment");
 
         FragmentManager fragmentManager = this.getSupportFragmentManager();
-        MapFragment mapFragment = (MapFragment) fragmentManager.findFragmentById(R.id.fragframe);
+        MapFragment mapFragment = new MapFragment();
+        mapFragment.initialize(person);
 
-        if (mapFragment == null) {
-            mapFragment = new MapFragment();
-
-            fragmentManager.beginTransaction()
-                    .add(R.id.fragframe, mapFragment)
-                    .commit();
-        }
+        FragmentTransaction transaction = fragmentManager.beginTransaction();
+        transaction.replace(R.id.fragment_container, mapFragment);
+        transaction.addToBackStack(null);
+        transaction.commit();
 
         Log.i(ID, "Map Fragment loaded");
     }
+
+    // csweb-HP-Compaq 192.168.9.10
 }

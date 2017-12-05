@@ -5,6 +5,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.IdRes;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -214,44 +215,25 @@ public class LoginFragment extends Fragment {
      * Determines if either the login or register button should be enabled
      */
     private void checkValues() {
-
-        if (checkServerValues() && checkLoginRequestValues()) {
-            checkRegisterRequestValues();
-        }
-    }
-
-    private boolean checkServerValues() {
-        if (Server.getHost().length() > 0 && Server.getPort().length() > 0) {
-            return true;
-        }
-
         loginButton.setEnabled(false);
         registerButton.setEnabled(false);
-        return false;
-    }
 
-    private boolean checkLoginRequestValues() {
+        if (Server.getHost().length() > 0 && Server.getPort().length() > 0) {
+            if (loginRequest.getUserName().length() > 0 && loginRequest.getPassword().length() > 0) {
+                loginButton.setEnabled(true);
 
-        if (loginRequest.getUserName().length() > 0 && loginRequest.getPassword().length() > 0) {
-            loginButton.setEnabled(true);
-            return true;
-        }
+                if (rRequest.getFirstName().length() > 0 && rRequest.getLastName().length() > 0 &&
+                        rRequest.getEmail().length() > 0 && rRequest.getGender().length() > 0) {
 
-        loginButton.setEnabled(false);
-        return false;
-    }
-
-    private void checkRegisterRequestValues() {
-        if (rRequest.getFirstName().length() > 0 && rRequest.getLastName().length() > 0 &&
-                rRequest.getEmail().length() > 0 && rRequest.getGender().length() > 0) {
-
-            registerButton.setEnabled(true);
-        }
-        else {
-            registerButton.setEnabled(false);
+                    registerButton.setEnabled(true);
+                }
+            }
         }
     }
 
+    /**
+     * Handles Asynchronous login requests
+     */
     private class AsyncLogin extends AsyncTask<LoginRequest, Integer, Response> {
 
         @Override
@@ -276,6 +258,9 @@ public class LoginFragment extends Fragment {
         }
     }
 
+    /**
+     * Handles Asynchronous registration requests
+     */
     private class AsyncRegister extends AsyncTask<RegisterRequest, Integer, Response> {
 
         @Override
@@ -300,12 +285,14 @@ public class LoginFragment extends Fragment {
         }
     }
 
+    /**
+     * Handles the response from either of the Async functions
+     */
     private void postAsync(Response response) {
-        loginButton.setEnabled(true);
-        registerButton.setEnabled(true);
+        checkValues(); // re-enable the correct buttons
 
         if (response.getMessage().length() > 0) {
-            Log.i("AsyncLogin", "Register failed: " + response.getMessage());
+            Log.i("AsyncLogin", "Login/Register failed: " + response.getMessage());
             makeToast("Error: " + response.getMessage());
         }
         else {
@@ -314,9 +301,11 @@ public class LoginFragment extends Fragment {
 
             if (person != null) {
                 makeToast("Login successful for " + person.getFirstName() + " " + person.getLastName());
+                MainActivity parent = (MainActivity)getActivity();
+                parent.loadMapFragment(person);
             }
             else {
-                makeToast("An unexpected error occurred, please try again.");
+                makeToast("Failed to load user data. Please try again.");
             }
         }
     }
