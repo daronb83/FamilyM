@@ -33,21 +33,10 @@ public class ProxyServer {
      * @param request a LoginRequest containing a username and password
      * @param context the current activity's context
      * @return a LoginResponse containing an authToken
-     * @throws IOException e
      */
-    public Response login(LoginRequest request, Context context) throws IOException {
+    public Response login(LoginRequest request, Context context) {
         String uri = context.getString(R.string.LoginUrl);
-        Response response = getLoginResponse(request, uri);
-
-        if (response.getClass() == LoginResponse.class) {
-            Log.i("ProxyServer", "Logged in successfully");
-            return response;
-        }
-        else {
-            MessageResponse messageResponse = (MessageResponse) response;
-            Log.i("ProxyServer", "Login failed: " + messageResponse.getMessage());
-            return messageResponse;
-        }
+        return getLoginResponse(request, uri);
     }
 
     /**
@@ -56,69 +45,52 @@ public class ProxyServer {
      * @param request a RegisterRequest containing new account info
      * @param context the current activity's context
      * @return LoginResponse containing an authToken
-     * @throws IOException e
      */
-    public Response register(RegisterRequest request, Context context) throws IOException {
+    public Response register(RegisterRequest request, Context context) {
         String uri = context.getString(R.string.RegisterUrl);
-        Response response = getLoginResponse(request, uri);
-
-        if (response.getClass() == LoginResponse.class) {
-            Log.i("ProxyServer", "Registered successfully");
-            return response;
-        }
-        else {
-            MessageResponse messageResponse = (MessageResponse) response;
-            Log.i("ProxyServer", "Registration failed: " + messageResponse.getMessage());
-            return messageResponse;
-        }
+        return getLoginResponse(request, uri);
     }
 
-    public boolean LoadData(LoginResponse login, Context context) throws IOException {
-        if (BuildConfig.DEBUG && login == null) throw new AssertionError("LoginResponse is null");
-
-        PersonsResponse personsResponse = getPersons(login, context);
-        EventsResponse eventsResponse = getEvents(login, context);
-
-        if (personsResponse != null && eventsResponse != null) {
-            DataSet.setPersons(personsResponse.getData());
-            DataSet.setEvents(eventsResponse.getData());
-            return true;
-        }
-
-        return false;
-    }
-
-    private EventsResponse getEvents(LoginResponse login, Context context) throws IOException {
-        if (BuildConfig.DEBUG && login == null) throw new AssertionError("LoginResponse is null");
-
-        String uri = context.getString(R.string.EventUrl);
-        Response response = getDataResponse(uri, login.getAuthToken(), new EventsResponse());
-
-        if (response.getClass() == EventsResponse.class) {
-            return (EventsResponse) response;
-        }
-        else {
-            MessageResponse messageResponse = (MessageResponse) response;
-            throw new IOException(messageResponse.getMessage());
-        }
-    }
-
-    private PersonsResponse getPersons(LoginResponse login, Context context) throws IOException {
+    /**
+     * Loads the user's data from a successful login response
+     *
+     * @param login a successful login response
+     * @param context the current activity's context
+     * @return true if the data was loaded successfully
+     */
+    public Response LoadData(LoginResponse login, Context context) {
         if (BuildConfig.DEBUG && login == null) throw new AssertionError("LoginResponse is null");
 
         String uri = context.getString(R.string.PersonUrl);
-        Response response = getDataResponse(uri, login.getAuthToken(), new PersonsResponse());
+        PersonsResponse personsResponse =
+                (PersonsResponse)getAuthResponse(uri, login.getAuthToken(), new PersonsResponse());
 
-        if (response.getClass() == PersonsResponse.class) {
-            return (PersonsResponse) response;
+        uri = context.getString(R.string.EventUrl);
+        EventsResponse eventsResponse =
+                (EventsResponse)getAuthResponse(uri, login.getAuthToken(), new EventsResponse());
+
+        if (personsResponse.getMessage().length() == 0 && eventsResponse.getMessage().length() == 0) {
+            DataSet.setPersons(personsResponse.getData());
+            DataSet.setEvents(eventsResponse.getData());
+            return login;
         }
         else {
-            MessageResponse messageResponse = (MessageResponse) response;
-            throw new IOException(messageResponse.getMessage());
+
+            if (personsResponse.getMessage().length() > 0) {
+                Log.i("ProxyServer", personsResponse.getMessage());
+                return personsResponse;
+            }
+
+            if (eventsResponse.getMessage().length() > 0) {
+                Log.i("ProxyServer", eventsResponse.getMessage());
+                return eventsResponse;
+            }
+
+            return new MessageResponse("Internal server error");
         }
     }
 
-    private Response getDataResponse(String uri, String authToken, Response typeOfResponse) {
+    private Response getAuthResponse(String uri, String authToken, Response instanceOfDesiredResponse) {
         if (BuildConfig.DEBUG && !Server.isInstantiated()) throw new AssertionError("Missing server info");
         if (BuildConfig.DEBUG && authToken == null) throw new AssertionError("authToken is null");
         if (BuildConfig.DEBUG && uri == null) throw new AssertionError("uri is null");
@@ -134,23 +106,14 @@ public class ProxyServer {
 
             if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 Log.i("ProxyServer", "Response: " + connection.getResponseMessage());
-
                 InputStream responseBody = connection.getInputStream();
                 JsonDecoder decoder = new JsonDecoder();
-                Response output = (Response) decoder.decodeStream(responseBody, typeOfResponse);
+                Response output = (Response) decoder.decodeStream(responseBody, instanceOfDesiredResponse);
                 responseBody.close();
-
-                if (output == null) {
-                    Log.i("ProxyServer", "Data Response failed");
-                    return new MessageResponse("Unable to retrieve data");
-                }
-                else {
-                    Log.i("ProxyServer", "Data Response received successfully");
-                    return output;
-                }
+                return output;
             }
             else {
-                Log.i("ProxyServer", "Data Response failed: " + connection.getResponseMessage());
+                Log.i("ProxyServer", "Response failed: " + connection.getResponseMessage());
                 return new MessageResponse(connection.getResponseMessage());
             }
         }
@@ -183,21 +146,12 @@ public class ProxyServer {
                 Log.i("ProxyServer", "Response: " + connection.getResponseMessage());
                 InputStream responseBody = connection.getInputStream();
                 JsonDecoder decoder = new JsonDecoder();
-                LoginResponse output =
-                        (LoginResponse) decoder.decodeStream(responseBody, new LoginResponse());
+                LoginResponse output = (LoginResponse) decoder.decodeStream(responseBody, new LoginResponse());
                 responseBody.close();
-
-                if (output == null) {
-                    Log.i("ProxyServer", "Login Response failed: invalid data");
-                    return new MessageResponse("Login Response failed: invalid login data");
-                }
-                else {
-                    Log.i("ProxyServer", "Login Response received successfully");
-                    return output;
-                }
+                return output;
             }
             else {
-                Log.i("ProxyServer", "Data Response failed: " + connection.getResponseMessage());
+                Log.i("ProxyServer", "Login failed: " + connection.getResponseMessage());
                 return new MessageResponse(connection.getResponseMessage());
             }
         }

@@ -3,7 +3,7 @@ package fox.glass.com.shared.responses;
 /**
  * Models a JSON response for the EventService
  */
-public class EventResponse implements Response {
+public class EventResponse extends MessageResponse {
 
     private String descendant;
     private String eventID;

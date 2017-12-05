@@ -4,7 +4,7 @@ package fox.glass.com.shared.responses;
 /**
  * Models a JSON response for the LoginService
  */
-public class LoginResponse implements Response {
+public class LoginResponse extends MessageResponse {
 
     private String authToken;
     private String userName;

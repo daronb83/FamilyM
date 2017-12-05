@@ -4,7 +4,7 @@ package fox.glass.com.shared.responses;
 /**
  * Models a JSON response for the PersonService
  */
-public class PersonResponse implements Response {
+public class PersonResponse extends MessageResponse {
 
     private String descendant;
     private String personID;

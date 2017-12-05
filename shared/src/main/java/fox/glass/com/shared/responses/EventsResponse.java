@@ -7,7 +7,7 @@ import fox.glass.com.shared.database.Event;
 /**
  * Models a JSON response for the EventsService
  */
-public class EventsResponse implements Response {
+public class EventsResponse extends MessageResponse {
 
     private List<Event> data;
 

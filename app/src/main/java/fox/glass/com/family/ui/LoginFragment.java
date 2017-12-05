@@ -5,7 +5,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.IdRes;
 import android.support.v4.app.Fragment;
-import android.support.v4.os.AsyncTaskCompat;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -18,9 +17,6 @@ import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.net.URL;
-
 import fox.glass.com.family.R;
 import fox.glass.com.family.model.DataSet;
 import fox.glass.com.family.model.Server;
@@ -28,7 +24,6 @@ import fox.glass.com.family.net.ProxyServer;
 import fox.glass.com.shared.database.Person;
 import fox.glass.com.shared.requests.*;
 import fox.glass.com.shared.responses.LoginResponse;
-import fox.glass.com.shared.responses.MessageResponse;
 import fox.glass.com.shared.responses.Response;
 
 /**
@@ -38,7 +33,7 @@ public class LoginFragment extends Fragment {
     private static String ID = "FamilyMap LoginFragment";
 
     private Context context;
-    private LoginRequest lRequest;
+    private LoginRequest loginRequest;
     private RegisterRequest rRequest;
     private Button loginButton;
     private Button registerButton;
@@ -48,27 +43,21 @@ public class LoginFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         context = this.getContext();
-        lRequest = new LoginRequest();
+        loginRequest = new LoginRequest();
         rRequest = new RegisterRequest();
 
         View view = inflater.inflate(R.layout.fragment_login, container, false);
-        addTextListeners(view);
+        addInputListeners(view);
         addButtonListeners(view);
 
         return view;
     }
 
-    private void makeToast(String message) {
-        Toast toast = Toast.makeText(this.getContext(), message, Toast.LENGTH_SHORT);
-        toast.setGravity(Gravity.BOTTOM, 0, 50);
-        toast.show();
-    }
-
     /**
-     * Adds listeners to all textEdit fields
+     * Adds listeners to all textEdit/radio fields
      * @param view the inflated loginFragment view
      */
-    private void addTextListeners(View view) {
+    private void addInputListeners(View view) {
         EditText hostEditText = (EditText) view.findViewById(R.id.host_input);
         hostEditText.addTextChangedListener(new TextWatcher() {
             @Override
@@ -109,7 +98,7 @@ public class LoginFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
-                lRequest.setUserName(s.toString().trim());
+                loginRequest.setUserName(s.toString().trim());
                 rRequest.setUserName(s.toString().trim());
                 checkValues();
             }
@@ -125,7 +114,7 @@ public class LoginFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable s) {
-                lRequest.setPassword(s.toString().trim());
+                loginRequest.setPassword(s.toString().trim());
                 rRequest.setPassword(s.toString().trim());
                 checkValues();
             }
@@ -175,13 +164,7 @@ public class LoginFragment extends Fragment {
                 checkValues();
             }
         });
-    }
 
-    /**
-     * Adds listeners to all buttons
-     * @param view the inflated loginFragment view
-     */
-    private void addButtonListeners(View view) {
         RadioGroup genderRadioGroup = (RadioGroup) view.findViewById(R.id.gender_group);
         genderRadioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
@@ -197,13 +180,20 @@ public class LoginFragment extends Fragment {
                 checkValues();;
             }
         });
+    }
 
+    /**
+     * Adds listeners to all buttons
+     * @param view the inflated loginFragment view
+     */
+    private void addButtonListeners(View view) {
         loginButton = (Button) view.findViewById(R.id.login_button);
         loginButton.setEnabled(false);
         loginButton.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v) {
                 loginButton.setEnabled(false);
+                registerButton.setEnabled(false);
                 new AsyncLogin().execute();
             }
         });
@@ -213,6 +203,7 @@ public class LoginFragment extends Fragment {
         registerButton.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v) {
+                loginButton.setEnabled(false);
                 registerButton.setEnabled(false);
                 new AsyncRegister().execute();
             }
@@ -241,7 +232,7 @@ public class LoginFragment extends Fragment {
 
     private boolean checkLoginRequestValues() {
 
-        if (lRequest.getUserName().length() > 0 && lRequest.getPassword().length() > 0) {
+        if (loginRequest.getUserName().length() > 0 && loginRequest.getPassword().length() > 0) {
             loginButton.setEnabled(true);
             return true;
         }
@@ -261,93 +252,78 @@ public class LoginFragment extends Fragment {
         }
     }
 
-    private class AsyncLogin extends AsyncTask<LoginRequest, Integer, String> {
+    private class AsyncLogin extends AsyncTask<LoginRequest, Integer, Response> {
 
         @Override
-        protected String doInBackground(LoginRequest... params) {
-            Log.i(ID, "Logging in: " + lRequest.getUserName() + ", Password: " + lRequest.getPassword());
+        protected Response doInBackground(LoginRequest... params) {
+            Log.i(ID, "Logging in: " + loginRequest.getUserName() + ", Password: " + loginRequest.getPassword());
             ProxyServer server = new ProxyServer();
             Response response;
 
-            try {
-                response = server.login(lRequest, context);
+            response = server.login(loginRequest, context);
 
-                if (response.getClass() == LoginResponse.class) {
-
-                    server.LoadData((LoginResponse)response, context);
-                    LoginResponse login = (LoginResponse)response;
-                    Person person = DataSet.getPersonById(login.getPersonID());
-
-                    if (person != null) {
-                        return person.getFirstName() + " " + person.getLastName() + " is logged in";
-                    }
-                }
-                else {
-                    MessageResponse message = (MessageResponse) response;
-                    return "Login failed: " + message.getMessage();
-                }
-            }
-            catch (IOException e) {
-                return ("Login failed: " + e.getMessage());
+            if (response.getMessage().length() == 0) {
+                Log.i(ID, "Login successful, loading data");
+                return server.LoadData((LoginResponse)response, context);
             }
 
-            return ("Login failed");
+            return response;
         }
 
         @Override
-        protected void onPostExecute(String result) {
-            loginButton.setEnabled(true);
-            Log.i("AsyncLogin", result);
-            makeToast(result);
+        protected void onPostExecute(Response response) {
+            postAsync(response);
         }
     }
 
-    private class AsyncRegister extends AsyncTask<RegisterRequest, Integer, String> {
+    private class AsyncRegister extends AsyncTask<RegisterRequest, Integer, Response> {
 
         @Override
-        protected String doInBackground(RegisterRequest... params) {
+        protected Response doInBackground(RegisterRequest... params) {
             Log.i(ID, "Registering: " + rRequest.getUserName() + ", Password: " + rRequest.getPassword());
             ProxyServer server = new ProxyServer();
             Response response;
 
-            try {
-                response = server.register(rRequest, context);
+            response = server.register(rRequest, context);
 
-
-                if (response.getClass() == LoginResponse.class) {
-                    try {
-                        server.LoadData((LoginResponse)response, context);
-                        LoginResponse login = (LoginResponse) response;
-                        Log.i("AuthToken", login.getAuthToken());
-                        Person person = DataSet.getPersonById(login.getPersonID());
-
-                        if (person != null) {
-                            return person.getFirstName() + " " + person.getLastName() + " is registered";
-                        }
-                        else {
-                            return "Registration failed: Person not found";
-                        }
-                    }
-                    catch (IOException e) {
-                        return "Registration failed: " + e.getMessage();
-                    }
-                }
-                else {
-                    MessageResponse message = (MessageResponse) response;
-                    return "Registration failed: " + message.getMessage();
-                }
-            }
-            catch (IOException e) {
-                return ("Registration failed: " + e.getMessage());
+            if (response.getMessage().length() == 0) {
+                Log.i(ID, "Login successful, loading data");
+                return server.LoadData((LoginResponse)response, context);
             }
 
+            return response;
         }
 
         @Override
-        protected void onPostExecute(String result) {
-            registerButton.setEnabled(true);
-            Log.i("AsyncRegister", result);
-            makeToast(result);
+        protected void onPostExecute(Response response) {
+            postAsync(response);
         }
+    }
+
+    private void postAsync(Response response) {
+        loginButton.setEnabled(true);
+        registerButton.setEnabled(true);
+
+        if (response.getMessage().length() > 0) {
+            Log.i("AsyncLogin", "Register failed: " + response.getMessage());
+            makeToast("Error: " + response.getMessage());
+        }
+        else {
+            LoginResponse data = (LoginResponse) response;
+            Person person = DataSet.getPersonById(data.getPersonID());
+
+            if (person != null) {
+                makeToast("Login successful for " + person.getFirstName() + " " + person.getLastName());
+            }
+            else {
+                makeToast("An unexpected error occurred, please try again.");
+            }
+        }
+    }
+
+    private void makeToast(String message) {
+        Toast toast = Toast.makeText(this.getContext(), message, Toast.LENGTH_LONG);
+        toast.setGravity(Gravity.BOTTOM, 0, 50);
+        toast.show();
     }
 }

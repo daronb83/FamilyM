@@ -7,7 +7,7 @@ import fox.glass.com.shared.database.Person;
 /**
  * Modles a JSON response for the PeopleService
  */
-public class PersonsResponse implements Response {
+public class PersonsResponse extends MessageResponse {
 
     private List<Person> data;
 
