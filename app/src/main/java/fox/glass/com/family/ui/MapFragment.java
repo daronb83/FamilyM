@@ -1,14 +1,13 @@
 package fox.glass.com.family.ui;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -30,11 +29,16 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
 
     private String tag = "MapFragment";
     private static final int PERMISSION_CODE = 1253;
-
     private Person user;
 
     public void initialize(Person user) {
         this.user = user;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState){
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -75,5 +79,16 @@ public class MapFragment extends Fragment implements OnMapReadyCallback{
                 .position(birthLocation)
                 .title("User Birth Marker"));
         googleMap.moveCamera(CameraUpdateFactory.newLatLng(birthLocation));
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.fragment_map_list, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        return true;
     }
 }

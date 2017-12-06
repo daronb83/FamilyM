@@ -4,6 +4,8 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.os.Bundle;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 
 import fox.glass.com.family.R;
@@ -11,7 +13,7 @@ import fox.glass.com.family.model.DataSet;
 import fox.glass.com.family.model.Server;
 import fox.glass.com.shared.database.Person;
 
-public class MainActivity extends FragmentActivity {
+public class MainActivity extends AppCompatActivity {
 
     private static final String ID = "Family Map MainActivity";
 

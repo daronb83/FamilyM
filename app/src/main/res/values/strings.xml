@@ -25,5 +25,10 @@
     <string name="RegisterUrl">/user/register</string>
     <string name="EventUrl">/event</string>
     <string name="PersonUrl">/person</string>
+    
+    <!-- Map Menu -->
+    <string name="MenuSearch">Search</string>
+    <string name="MenuFilter">Filter</string>
+    <string name="MenuSettings">Settings</string>
 
 </resources>
